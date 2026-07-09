@@ -1,0 +1,53 @@
+import {readFileSync} from 'node:fs';
+import {describe, expect, it} from 'vitest';
+import {htmlToMarkdown} from '../src/markdown.js';
+
+// Vitest runs with the project root as cwd
+const claudeSnippet = readFileSync('test/fixtures/claude-snippet.html', 'utf8');
+
+describe('htmlToMarkdown', () => {
+	it('converts a real Chromium clipboard snippet (claude.ai) with inline code, bold, and italics', () => {
+		const markdown = htmlToMarkdown(claudeSnippet);
+
+		expect(markdown).toContain('**retirement**');
+		expect(markdown).toContain('`partial_register_lane_work.md`');
+		expect(markdown).toContain('_unblocked now_');
+		expect(markdown).toContain('`--legacy-masks`');
+		expect(markdown).toContain('`canonicalizeViewRegisters`');
+		expect(markdown).toContain('`cppTestLegacy`');
+		expect(markdown).toContain('_High value / medium effort / low risk._');
+		expect(markdown).toContain('—');
+	});
+
+	it('normalizes non-breaking spaces to regular spaces', () => {
+		const markdown = htmlToMarkdown(claudeSnippet);
+		expect(markdown).not.toContain('\u00A0');
+	});
+
+	it('converts headings, links, and emphasis', () => {
+		const markdown = htmlToMarkdown('<h2>Title</h2><p>See <a href="https://example.com/">docs</a> for <strong>more</strong>.</p>');
+		expect(markdown).toBe('## Title\n\nSee [docs](https://example.com/) for **more**.');
+	});
+
+	it('converts ordered lists with start offsets', () => {
+		const markdown = htmlToMarkdown('<ol start="3"><li>three</li><li>four</li></ol>');
+		expect(markdown).toContain('3. three');
+		expect(markdown).toContain('4. four');
+	});
+
+	it('converts tables via GFM', () => {
+		const markdown = htmlToMarkdown('<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>');
+		expect(markdown).toContain('| a | b |');
+		expect(markdown).toContain('| 1 | 2 |');
+	});
+
+	it('converts fenced code blocks', () => {
+		const markdown = htmlToMarkdown('<pre><code>const x = 1;\nconsole.log(x);</code></pre>');
+		expect(markdown).toContain('```\nconst x = 1;\nconsole.log(x);\n```');
+	});
+
+	it('strips style tags entirely', () => {
+		const markdown = htmlToMarkdown('<style>.a { color: red; }</style><p>text</p>');
+		expect(markdown).toBe('text');
+	});
+});

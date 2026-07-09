@@ -1,0 +1,31 @@
+{
+	"name": "markdown-clipboard",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Browser extension to copy page content as Markdown and convert HTML in the clipboard to Markdown",
+	"type": "module",
+	"packageManager": "pnpm@11.5.3",
+	"scripts": {
+		"build": "node build.mjs",
+		"build:chrome": "node build.mjs chrome",
+		"build:firefox": "node build.mjs firefox",
+		"watch": "node build.mjs --watch",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"check": "npm run typecheck && npm run test && npm run build"
+	},
+	"dependencies": {
+		"mathml-to-latex": "^1.5.0",
+		"turndown": "^7.2.0",
+		"turndown-plugin-gfm": "^1.0.2"
+	},
+	"devDependencies": {
+		"@types/chrome": "^0.0.280",
+		"@types/node": "^26.1.1",
+		"@types/turndown": "^5.0.5",
+		"esbuild": "^0.24.0",
+		"jsdom": "^25.0.0",
+		"typescript": "^5.6.0",
+		"vitest": "^2.1.0"
+	}
+}
