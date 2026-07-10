@@ -46,6 +46,30 @@ describe('htmlToMarkdown', () => {
 		expect(markdown).toContain('```\nconst x = 1;\nconsole.log(x);\n```');
 	});
 
+	it('leaves intraword underscores unescaped', () => {
+		expect(htmlToMarkdown('<p>hir_high_variable_allocation</p>')).toBe('hir_high_variable_allocation');
+		expect(htmlToMarkdown('<p>a__b</p>')).toBe('a__b');
+		expect(htmlToMarkdown('<p>lane_1_of_2</p>')).toBe('lane_1_of_2');
+	});
+
+	it('still escapes underscores that could open or close emphasis', () => {
+		expect(htmlToMarkdown('<p>_emphasis_</p>')).toBe('\\_emphasis\\_');
+		expect(htmlToMarkdown('<p>__init__</p>')).toBe('\\_\\_init\\_\\_');
+		expect(htmlToMarkdown('<p>ends_ _starts</p>')).toBe('ends\\_ \\_starts');
+	});
+
+	it('still escapes intraword asterisks, which do emphasize', () => {
+		expect(htmlToMarkdown('<p>a*b*c</p>')).toBe('a\\*b\\*c');
+	});
+
+	it('does not unescape an underscore preceded by a literal backslash', () => {
+		expect(htmlToMarkdown(String.raw`<p>a\_b</p>`)).toBe(String.raw`a\\\_b`);
+	});
+
+	it('leaves underscores in code spans alone', () => {
+		expect(htmlToMarkdown('<p><code>_foo_</code></p>')).toBe('`_foo_`');
+	});
+
 	it('strips style tags entirely', () => {
 		const markdown = htmlToMarkdown('<style>.a { color: red; }</style><p>text</p>');
 		expect(markdown).toBe('text');
