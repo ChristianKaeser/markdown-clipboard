@@ -8,7 +8,7 @@ const targets = requestedTargets.length > 0 ? requestedTargets : ['chrome', 'fir
 
 const baseManifest = {
 	name: 'Markdown Clipboard',
-	version: '0.1.1',
+	version: '0.2.0',
 	description: 'Convert HTML on your clipboard or on a page to Markdown with one click. Formats lists, links, images, and selections.',
 	manifest_version: 3,
 	icons: {
@@ -24,13 +24,10 @@ const baseManifest = {
 		},
 		default_title: 'Convert clipboard HTML to Markdown',
 	},
-	content_scripts: [
-		{
-			matches: ['*://*/*'],
-			js: ['content.js'],
-			run_at: 'document_idle',
-		},
-	],
+	// No declared content script: the copy features inject `content.js` on demand
+	// under `activeTab` (granted by the context-menu click or keyboard command).
+	// This avoids the broad `*://*/*` host permission ("access your data for all
+	// websites") entirely — nothing runs on a page until the user acts on it.
 	// Commands are declared but intentionally ship WITHOUT `suggested_key`, so
 	// no shortcut is bound by default (avoids clobbering site/other-extension
 	// keys like Alt+X). Users opt in by assigning keys in the browser's own
@@ -52,14 +49,14 @@ function manifestFor(target) {
 		return {
 			...baseManifest,
 			minimum_chrome_version: '116',
-			permissions: ['contextMenus', 'activeTab', 'clipboardRead', 'clipboardWrite', 'offscreen'],
+			permissions: ['contextMenus', 'activeTab', 'scripting', 'clipboardRead', 'clipboardWrite', 'offscreen'],
 			background: {service_worker: 'background.js'},
 		};
 	}
 
 	return {
 		...baseManifest,
-		permissions: ['contextMenus', 'activeTab', 'clipboardRead', 'clipboardWrite'],
+		permissions: ['contextMenus', 'activeTab', 'scripting', 'clipboardRead', 'clipboardWrite'],
 		background: {scripts: ['background.js']},
 		browser_specific_settings: {
 			gecko: {

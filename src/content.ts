@@ -61,21 +61,35 @@ function getSelectionAsHTML(): string {
 	return `<${containerTagName}>${wrapper.innerHTML}</${containerTagName}>`;
 }
 
-browserApi.runtime.onMessage.addListener((message: ContentRequest) => {
-	if (message.type !== 'copy-as-markdown') {
-		return;
-	}
+// The background has no persistent content script anymore: it injects this file
+// on demand (via `scripting.executeScript`) under the `activeTab` grant that the
+// context-menu / keyboard-command gesture provides. Re-injecting into the same
+// tab re-runs this bundle, so guard the listener registration to keep exactly
+// one listener alive per document.
+declare global {
+	// eslint-disable-next-line no-var
+	var __markdownClipboardListening: boolean | undefined;
+}
 
-	const htmlContent = message.actionType === 'selection'
-		? getSelectionAsHTML()
-		: message.htmlContent;
+if (!globalThis.__markdownClipboardListening) {
+	globalThis.__markdownClipboardListening = true;
 
-	(async () => {
-		try {
-			const markdownContent = htmlToMarkdown(htmlContent);
-			await navigator.clipboard.writeText(markdownContent);
-		} catch (error) {
-			console.error('[markdown-clipboard]', error);
+	browserApi.runtime.onMessage.addListener((message: ContentRequest) => {
+		if (message.type !== 'copy-as-markdown') {
+			return;
 		}
-	})();
-});
+
+		const htmlContent = message.actionType === 'selection'
+			? getSelectionAsHTML()
+			: message.htmlContent;
+
+		(async () => {
+			try {
+				const markdownContent = htmlToMarkdown(htmlContent);
+				await navigator.clipboard.writeText(markdownContent);
+			} catch (error) {
+				console.error('[markdown-clipboard]', error);
+			}
+		})();
+	});
+}

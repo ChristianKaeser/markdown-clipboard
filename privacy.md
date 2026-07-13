@@ -11,10 +11,12 @@ browser. It does not collect, transmit, sell, or share any personal data.
   conversion, the extension reads the HTML currently on your clipboard, converts
   it to Markdown, and writes the result back to your clipboard. Clipboard
   contents are processed in memory on your device and are never sent anywhere.
-- **The active page** (`activeTab`, content script): the "copy selection as
+- **The active page** (`activeTab` + `scripting`): the "copy selection as
   Markdown" feature reads the current selection on the page you explicitly act
-  on, converts it, and places the result on your clipboard. Page content is not
-  stored or transmitted.
+  on, converts it, and places the result on your clipboard. Access is limited to
+  the tab you act on, only at the moment you invoke a copy — the extension
+  requests no standing access to any website. Page content is not stored or
+  transmitted.
 
 ## What the extension does **not** do
 

@@ -27,6 +27,22 @@ async function registerContextMenus(): Promise<void> {
 browserApi.runtime.onInstalled.addListener(registerContextMenus);
 browserApi.runtime.onStartup.addListener(registerContextMenus);
 
+/**
+ * Deliver a copy request to the page. There is no persistent content script:
+ * the copy features run under `activeTab`, which a context-menu click or a
+ * keyboard command grants for the tab in question. We inject `content.js` on
+ * demand (idempotent — it guards its own listener) and then message it. This is
+ * what lets the extension work without the "access your data for all websites"
+ * host permission.
+ */
+async function copyInTab(tabId: number, message: ContentRequest): Promise<void> {
+	await browserApi.scripting.executeScript({
+		target: {tabId},
+		files: ['content.js'],
+	});
+	await browserApi.tabs.sendMessage(tabId, message);
+}
+
 browserApi.contextMenus.onClicked.addListener(async (info, tab) => {
 	if (tab?.id === undefined) {
 		return;
@@ -51,7 +67,7 @@ browserApi.contextMenus.onClicked.addListener(async (info, tab) => {
 	}
 
 	try {
-		await browserApi.tabs.sendMessage(tab.id, message);
+		await copyInTab(tab.id, message);
 	} catch (error) {
 		console.error('[markdown-clipboard]', error);
 	}
@@ -72,7 +88,7 @@ browserApi.commands.onCommand.addListener(async command => {
 				actionType: 'selection',
 				htmlContent: '',
 			};
-			await browserApi.tabs.sendMessage(tabs[0].id, message);
+			await copyInTab(tabs[0].id, message);
 		} catch (error) {
 			console.error('[markdown-clipboard]', error);
 		}

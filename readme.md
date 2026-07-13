@@ -69,7 +69,8 @@ pnpm run release         # build + lint + all three packages
   `data_collection_permissions: { required: ["none"] }` declaration required for
   new submissions.
 - **Chrome Web Store:** upload the chrome zip; declare "no data collection" and
-  justify `clipboardRead` and the content script.
+  justify `clipboardRead` and `scripting` (used only to inject the copy logic
+  into the active tab on an explicit user action, under `activeTab`).
 
 To bump the version, edit `version` in `build.mjs` and `package.json`, rebuild,
 then re-package.
@@ -79,6 +80,7 @@ then re-package.
 - `src/markdown.ts` — shared Turndown configuration (rules ported from the reference extension).
 - `src/clipboard-convert.ts` — reads/writes the clipboard in a DOM context. Prefers the async Clipboard API, falls back to `execCommand`-based paste/copy interception (needed in Chromium's offscreen document, which is never focused).
 - `src/background.ts` — one bundle for both browsers. Chromium's service worker has no DOM, so it delegates conversion to `src/offscreen.ts`; Firefox's background event page converts directly. The build aliases `#convert-host` per target so Turndown isn't shipped in the Chromium worker.
+- `src/content.ts` — the copy-as-Markdown logic. Not a declared content script; the background injects it on demand with `scripting.executeScript` under `activeTab`, so no all-sites host permission is needed. It guards its own message listener against repeated injection.
 - `src/icon-animation.ts` — canvas-drawn toolbar icon animation (OffscreenCanvas, with a badge-text fallback).
 - `build.mjs` — esbuild + per-target `manifest.json` generation.
 
@@ -86,7 +88,11 @@ then re-package.
 
 - `clipboardRead` / `clipboardWrite`: the core feature.
 - `contextMenus`: the right-click entries.
-- `activeTab`: access to the page for selection copying.
+- `activeTab`: temporary access to the current tab, granted only when the user
+  invokes a copy (context-menu click or keyboard command). No broad
+  `*://*/*` host permission ("access your data for all websites") is requested.
+- `scripting`: inject the copy logic into the active tab on demand, under the
+  `activeTab` grant.
 - `offscreen` (Chromium only): clipboard access for the service worker.
 
 ## Credits
