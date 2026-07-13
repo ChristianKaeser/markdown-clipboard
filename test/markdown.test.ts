@@ -70,6 +70,20 @@ describe('htmlToMarkdown', () => {
 		expect(htmlToMarkdown('<p><code>_foo_</code></p>')).toBe('`_foo_`');
 	});
 
+	it('does not leave whitespace-only lines between paragraph-wrapped list items', () => {
+		// Claude Code Desktop emits `<li><p>…</p></li>`; the paragraph wrapping
+		// used to leave a line of 4 spaces between each item.
+		const markdown = htmlToMarkdown('<ul data-pm-slice="0 0 []"><li><p>s</p></li><li><p>sd</p></li><li><p>x</p></li></ul><p></p>');
+		expect(markdown).toBe('- s\n- sd\n- x');
+		expect(markdown.split('\n').some(line => /^[ \t]+$/.test(line))).toBe(false);
+	});
+
+	it('keeps continuation lines indented but blank lines empty in loose list items', () => {
+		const markdown = htmlToMarkdown('<ul><li><p>first</p><p>second</p></li><li><p>next</p></li></ul>');
+		expect(markdown).toBe('- first\n\n    second\n- next');
+		expect(markdown.split('\n').some(line => /^[ \t]+$/.test(line))).toBe(false);
+	});
+
 	it('strips style tags entirely', () => {
 		const markdown = htmlToMarkdown('<style>.a { color: red; }</style><p>text</p>');
 		expect(markdown).toBe('text');

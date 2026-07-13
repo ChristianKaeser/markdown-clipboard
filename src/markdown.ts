@@ -22,7 +22,8 @@ export function createTurndownService(): TurndownService {
 			content = content
 				.replace(/^\n+/, '') // Remove leading newlines
 				.replace(/\n+$/, '\n') // Replace trailing newlines with just a single one
-				.replace(/\n/gm, '\n    '); // Indent
+				.replace(/\n/gm, '\n    ') // Indent
+				.replace(/^[ \t]+$/gm, ''); // Don't leave whitespace on blank lines (e.g. `<li><p>…`)
 
 			let prefix = options.bulletListMarker + ' ';
 			const parent = node.parentNode as HTMLElement;
