@@ -1,5 +1,5 @@
 import {htmlToMarkdown} from './markdown.js';
-import type {ContentRequest} from './protocol.js';
+import type {ContentRequest, ConversionResult} from './protocol.js';
 
 // Chrome does not expose the `browser` namespace yet.
 const browserApi = globalThis.browser ?? globalThis.chrome;
@@ -74,22 +74,25 @@ declare global {
 if (!globalThis.__markdownClipboardListening) {
 	globalThis.__markdownClipboardListening = true;
 
-	browserApi.runtime.onMessage.addListener((message: ContentRequest) => {
+	browserApi.runtime.onMessage.addListener((message: ContentRequest, _sender, sendResponse) => {
 		if (message.type !== 'copy-as-markdown') {
 			return;
 		}
 
-		const htmlContent = message.actionType === 'selection'
-			? getSelectionAsHTML()
-			: message.htmlContent;
-
 		(async () => {
 			try {
+				const htmlContent = message.actionType === 'selection'
+					? getSelectionAsHTML()
+					: message.htmlContent;
 				const markdownContent = htmlToMarkdown(htmlContent);
 				await navigator.clipboard.writeText(markdownContent);
+				sendResponse({outcome: 'converted'} satisfies ConversionResult);
 			} catch (error) {
 				console.error('[markdown-clipboard]', error);
+				sendResponse({outcome: 'error', message: String(error)} satisfies ConversionResult);
 			}
 		})();
+
+		return true; // Keep the message channel open for the async response
 	});
 }

@@ -42,12 +42,12 @@ browserApi.runtime.onStartup.addListener(registerContextMenus);
  * what lets the extension work without the "access your data for all websites"
  * host permission.
  */
-async function copyInTab(tabId: number, message: ContentRequest): Promise<void> {
+async function copyInTab(tabId: number, message: ContentRequest): Promise<ConversionResult> {
 	await browserApi.scripting.executeScript({
 		target: {tabId},
 		files: ['content.js'],
 	});
-	await browserApi.tabs.sendMessage(tabId, message);
+	return browserApi.tabs.sendMessage(tabId, message);
 }
 
 browserApi.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -74,7 +74,8 @@ browserApi.contextMenus.onClicked.addListener(async (info, tab) => {
 	}
 
 	try {
-		await copyInTab(tab.id, message);
+		const result = await copyInTab(tab.id, message);
+		await animateActionIcon(result.outcome);
 	} catch (error) {
 		// Injection is blocked on restricted domains (e.g. addons.mozilla.org).
 		// Signal that instead of failing silently.
@@ -98,7 +99,8 @@ browserApi.commands.onCommand.addListener(async command => {
 				actionType: 'selection',
 				htmlContent: '',
 			};
-			await copyInTab(tabs[0].id, message);
+			const result = await copyInTab(tabs[0].id, message);
+			await animateActionIcon(result.outcome);
 		} catch (error) {
 			console.error('[markdown-clipboard]', error);
 			await animateActionIcon('error');
