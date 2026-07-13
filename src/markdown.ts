@@ -63,6 +63,56 @@ export function createTurndownService(): TurndownService {
 		},
 	});
 
+	// turndown-plugin-gfm only builds a Markdown table when the FIRST ROW is a
+	// heading row (a `<thead>`, or a first row that is all `<th>`). Tables with
+	// headers in the first COLUMN (key/value layout tables) or with no header at
+	// all are otherwise kept verbatim as raw HTML. Convert those too: 2-column
+	// key/value tables become label/value pairs, everything else becomes a GFM
+	// table with the first row treated as the header.
+	const isHeadingRow = (row: HTMLTableRowElement): boolean => {
+		const parent = row.parentElement;
+		if (!parent) {
+			return false;
+		}
+
+		return parent.nodeName === 'THEAD'
+			|| (parent.firstElementChild === row && [...row.cells].every(cell => cell.nodeName === 'TH'));
+	};
+
+	// Convert a cell's own content to inline Markdown (flattened to one line).
+	const cellToInline = (cell: HTMLTableCellElement): string =>
+		turndownService.turndown(cell.innerHTML).replaceAll(/\s*\n+\s*/g, ' ').trim();
+
+	turndownService.addRule('nonHeadingTable', {
+		filter: node =>
+			node.nodeName === 'TABLE'
+			&& (node as HTMLTableElement).rows.length > 0
+			&& !isHeadingRow((node as HTMLTableElement).rows[0]),
+		replacement(_content, node) {
+			const rows = [...(node as HTMLTableElement).rows];
+
+			// Key/value layout table: every row is a `<th>` label + one value cell.
+			if (rows.every(row => row.cells.length === 2 && row.cells[0].nodeName === 'TH')) {
+				const pairs = rows.map(row => `**${cellToInline(row.cells[0])}** — ${cellToInline(row.cells[1])}`);
+				return '\n\n' + pairs.join('\n\n') + '\n\n';
+			}
+
+			// Otherwise: a GFM table, first row as the header.
+			const width = Math.max(...rows.map(row => row.cells.length));
+			const toLine = (row: HTMLTableRowElement): string => {
+				const cells = [...row.cells].map(cell => cellToInline(cell));
+				while (cells.length < width) {
+					cells.push('');
+				}
+
+				return `| ${cells.join(' | ')} |`;
+			};
+
+			const separator = `| ${Array.from({length: width}, () => '---').join(' | ')} |`;
+			return '\n\n' + [toLine(rows[0]), separator, ...rows.slice(1).map(row => toLine(row))].join('\n') + '\n\n';
+		},
+	});
+
 	turndownService.addRule('mathml', {
 		// 'math' is not part of HTMLElementTagNameMap, so match by node name
 		filter: node => node.nodeName.toLowerCase() === 'math',

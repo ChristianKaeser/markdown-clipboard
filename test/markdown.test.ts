@@ -41,6 +41,23 @@ describe('htmlToMarkdown', () => {
 		expect(markdown).toContain('| 1 | 2 |');
 	});
 
+	it('renders a 2-column key/value (header-column) table as label/value pairs', () => {
+		// turndown-plugin-gfm keeps these as raw HTML; we degrade them instead.
+		const markdown = htmlToMarkdown('<table><tbody><tr><th>Summary</th><td>See your <a href="https://x.test/">tabs</a></td></tr><tr><th>Description</th><td>Based on <strong>Helper</strong></td></tr></tbody></table>');
+		expect(markdown).toBe('**Summary** — See your [tabs](https://x.test/)\n\n**Description** — Based on **Helper**');
+	});
+
+	it('renders a header-less table as a GFM table with the first row as header', () => {
+		const markdown = htmlToMarkdown('<table><tbody><tr><td>Ada</td><td>Engineer</td></tr><tr><td>Linus</td><td>Kernel</td></tr></tbody></table>');
+		expect(markdown).toBe('| Ada | Engineer |\n| --- | --- |\n| Linus | Kernel |');
+	});
+
+	it('does not dump raw <table> HTML for unhandled tables', () => {
+		const markdown = htmlToMarkdown('<table><tbody><tr><th>k</th><td>v</td></tr></tbody></table>');
+		expect(markdown).not.toContain('<table');
+		expect(markdown).not.toContain('<td');
+	});
+
 	it('converts fenced code blocks', () => {
 		const markdown = htmlToMarkdown('<pre><code>const x = 1;\nconsole.log(x);</code></pre>');
 		expect(markdown).toContain('```\nconst x = 1;\nconsole.log(x);\n```');
