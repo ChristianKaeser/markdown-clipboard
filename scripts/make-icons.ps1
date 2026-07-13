@@ -1,6 +1,7 @@
-# Generates the extension icons: a rounded dark tile with the Markdown "M"
-# and a down arrow, drawn as vector paths (no font rendering) so small sizes
-# stay crisp. Run: powershell -File scripts/make-icons.ps1
+# Generates the extension icons: a rounded tile with a diagonal "Ultraviolet"
+# gradient (#7C3AED -> #C026D3) carrying the Markdown "M" and a down arrow,
+# drawn as vector paths (no font rendering) so small sizes stay crisp.
+# Run: powershell -File scripts/make-icons.ps1
 Add-Type -AssemblyName System.Drawing
 
 $outDir = Join-Path $PSScriptRoot '..\icons'
@@ -21,8 +22,13 @@ foreach ($size in 16, 32, 48, 128) {
     $rect.AddArc($w - $d, $w - $d, $d, $d, 0, 90)
     $rect.AddArc(0, $w - $d, $d, $d, 90, 90)
     $rect.CloseFigure()
-    $bg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 36, 41, 47))
+    # Diagonal (top-left -> bottom-right) two-stop "Ultraviolet" gradient.
+    $brushRect = New-Object System.Drawing.RectangleF(0, 0, $size, $size)
+    $c1 = [System.Drawing.Color]::FromArgb(255, 124, 58, 237)  # #7C3AED violet
+    $c2 = [System.Drawing.Color]::FromArgb(255, 192, 38, 211)  # #C026D3 magenta
+    $bg = New-Object System.Drawing.Drawing2D.LinearGradientBrush($brushRect, $c1, $c2, 45)
     $g.FillPath($bg, $rect)
+    $bg.Dispose()
 
     # Markdown mark: "M" followed by a down arrow, as scaled polygons.
     # Coordinates are relative to a 100x100 design grid (the official
