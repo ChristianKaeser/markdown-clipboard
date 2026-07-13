@@ -4,7 +4,7 @@
 
 ## Features
 
-### Convert clipboard HTML to Markdown (toolbar icon / `Alt+Shift+X`)
+### Convert clipboard HTML to Markdown (toolbar icon)
 
 When you copy rich text (e.g. from a web app), the clipboard carries both a plain-text and an HTML flavor. Click the toolbar icon and the extension:
 
@@ -17,13 +17,24 @@ No popup, no page interaction — the conversion happens silently in the backgro
 
 Non-breaking spaces from rich-text sources are normalized to regular spaces.
 
-### Copy page content as Markdown (context menu / `Alt+X`)
+### Copy page content as Markdown (context menu)
 
 Carried over from [notlmn/copy-as-markdown](https://github.com/notlmn/copy-as-markdown) (MIT):
 
 - Right-click a link, image, or selection → *Copy … as Markdown*.
-- `Alt+X` copies the current selection as Markdown.
 - GFM tables, task lists, strikethrough; fenced code blocks with language detection; MathML → LaTeX.
+
+### Keyboard shortcuts (optional, off by default)
+
+Both actions are also exposed as commands, but ship **without default key
+bindings** — so the extension never clobbers a site's or another extension's
+shortcuts out of the box. To assign your own keys:
+
+- **Chromium:** `chrome://extensions/shortcuts`
+- **Firefox:** `about:addons` → gear → *Manage Extension Shortcuts*
+
+The commands are *Copy selection as Markdown* and *Convert clipboard HTML to
+Markdown*.
 
 ## Development
 

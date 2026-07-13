@@ -31,13 +31,17 @@ const baseManifest = {
 			run_at: 'document_idle',
 		},
 	],
+	// Commands are declared but intentionally ship WITHOUT `suggested_key`, so
+	// no shortcut is bound by default (avoids clobbering site/other-extension
+	// keys like Alt+X). Users opt in by assigning keys in the browser's own
+	// shortcut manager (chrome://extensions/shortcuts, or Firefox's "Manage
+	// Extension Shortcuts"). Both actions remain reachable without a shortcut —
+	// convert via the toolbar icon, copy-selection via the right-click menu.
 	commands: {
 		'copy-selection-as-md': {
-			suggested_key: {default: 'Alt+X'},
 			description: 'Copy selection as Markdown',
 		},
 		'convert-clipboard-as-md': {
-			suggested_key: {default: 'Alt+Shift+X'},
 			description: 'Convert clipboard HTML to Markdown',
 		},
 	},
