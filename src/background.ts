@@ -18,6 +18,13 @@ async function registerContextMenus(): Promise<void> {
 			id: `cpy-as-md:${context}`,
 			title: `Copy ${context} as Markdown`,
 			contexts: [context],
+			// Only offer the menu where we can actually inject: real web pages.
+			// This hides it on `about:`, `view-source:`, `file:`, `data:`, and
+			// extension pages, where script injection is impossible anyway.
+			// (Restricted *https* domains like addons.mozilla.org can't be
+			// filtered here without the `tabs`/host permission we deliberately
+			// dropped, so those fall back to the error animation on click.)
+			documentUrlPatterns: ['*://*/*'],
 		});
 	}
 }
@@ -69,7 +76,10 @@ browserApi.contextMenus.onClicked.addListener(async (info, tab) => {
 	try {
 		await copyInTab(tab.id, message);
 	} catch (error) {
+		// Injection is blocked on restricted domains (e.g. addons.mozilla.org).
+		// Signal that instead of failing silently.
 		console.error('[markdown-clipboard]', error);
+		await animateActionIcon('error');
 	}
 });
 
@@ -91,6 +101,7 @@ browserApi.commands.onCommand.addListener(async command => {
 			await copyInTab(tabs[0].id, message);
 		} catch (error) {
 			console.error('[markdown-clipboard]', error);
+			await animateActionIcon('error');
 		}
 	} else if (command === 'convert-clipboard-as-md') {
 		await convertClipboard();
