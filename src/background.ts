@@ -1,8 +1,8 @@
 import {animateActionIcon} from './icon-animation.js';
-// Resolved per build target: the real converter on Firefox (the background
-// event page has a DOM), a throwing stub on Chromium (delegates to offscreen).
+// Resolved per build target: direct DOM conversion on Firefox (the background
+// event page has a DOM), offscreen-document delegation on Chromium.
 import {convertClipboardToMarkdown} from '#convert-host';
-import type {ContentRequest, ConversionResult, OffscreenRequest} from './protocol.js';
+import type {ContentRequest, ConversionResult} from './protocol.js';
 
 // Chrome does not expose the `browser` namespace yet.
 const browserApi = globalThis.browser ?? globalThis.chrome;
@@ -90,11 +90,9 @@ browserApi.action.onClicked.addListener(async () => {
 async function convertClipboard(): Promise<void> {
 	let result: ConversionResult;
 	try {
-		// Chromium: service workers have no DOM/clipboard, so delegate to an
-		// offscreen document. Firefox: the background event page has both.
-		result = chrome.offscreen
-			? await convertViaOffscreenDocument()
-			: await convertClipboardToMarkdown();
+		// `#convert-host` is aliased per target: Firefox converts in-page,
+		// Chromium delegates to the offscreen document.
+		result = await convertClipboardToMarkdown();
 	} catch (error) {
 		result = {outcome: 'error', message: String(error)};
 	}
@@ -104,22 +102,4 @@ async function convertClipboard(): Promise<void> {
 	}
 
 	await animateActionIcon(result.outcome);
-}
-
-async function convertViaOffscreenDocument(): Promise<ConversionResult> {
-	await ensureOffscreenDocument();
-	const request: OffscreenRequest = {type: 'convert-clipboard', target: 'offscreen'};
-	return chrome.runtime.sendMessage(request);
-}
-
-async function ensureOffscreenDocument(): Promise<void> {
-	if (await chrome.offscreen.hasDocument()) {
-		return;
-	}
-
-	await chrome.offscreen.createDocument({
-		url: 'offscreen.html',
-		reasons: [chrome.offscreen.Reason.CLIPBOARD],
-		justification: 'Read HTML from the clipboard and write back its Markdown conversion',
-	});
 }

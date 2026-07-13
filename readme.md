@@ -42,6 +42,27 @@ Load the unpacked extension:
 
 Icons are generated with `powershell -File scripts/make-icons.ps1` (checked in, so this is only needed when changing the design).
 
+## Packaging & publishing
+
+```sh
+pnpm run lint:ext        # web-ext lint on dist/firefox (same validator AMO runs)
+pnpm run package:firefox # → web-ext-artifacts/markdown-clipboard-firefox-<version>.zip
+pnpm run package:chrome  # → web-ext-artifacts/markdown-clipboard-chrome-<version>.zip
+pnpm run package:source  # → web-ext-artifacts/source.zip (for AMO's source review)
+pnpm run release         # build + lint + all three packages
+```
+
+- **Firefox (AMO, listed):** upload the firefox zip and the source zip at
+  <https://addons.mozilla.org/developers/>. The privacy policy is
+  [`privacy.md`](privacy.md). The manifest already carries the `gecko` id and the
+  `data_collection_permissions: { required: ["none"] }` declaration required for
+  new submissions.
+- **Chrome Web Store:** upload the chrome zip; declare "no data collection" and
+  justify `clipboardRead` and the content script.
+
+To bump the version, edit `version` in `build.mjs` and `package.json`, rebuild,
+then re-package.
+
 ## Architecture notes
 
 - `src/markdown.ts` — shared Turndown configuration (rules ported from the reference extension).

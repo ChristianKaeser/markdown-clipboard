@@ -12,7 +12,12 @@
 		"watch": "node build.mjs --watch",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
-		"check": "npm run typecheck && npm run test && npm run build"
+		"check": "pnpm run typecheck && pnpm run test && pnpm run build",
+		"lint:ext": "web-ext lint --source-dir dist/firefox",
+		"package:firefox": "web-ext build --source-dir dist/firefox --artifacts-dir web-ext-artifacts --filename markdown-clipboard-firefox-{version}.zip --overwrite-dest",
+		"package:chrome": "web-ext build --source-dir dist/chrome --artifacts-dir web-ext-artifacts --filename markdown-clipboard-chrome-{version}.zip --overwrite-dest",
+		"package:source": "node scripts/package-source.mjs",
+		"release": "pnpm run build && pnpm run lint:ext && pnpm run package:firefox && pnpm run package:chrome && pnpm run package:source"
 	},
 	"dependencies": {
 		"mathml-to-latex": "^1.5.0",
@@ -26,6 +31,7 @@
 		"esbuild": "^0.24.0",
 		"jsdom": "^25.0.0",
 		"typescript": "^5.6.0",
-		"vitest": "^2.1.0"
+		"vitest": "^2.1.0",
+		"web-ext": "^10.1.0"
 	}
 }

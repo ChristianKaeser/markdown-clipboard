@@ -8,8 +8,8 @@ const targets = requestedTargets.length > 0 ? requestedTargets : ['chrome', 'fir
 
 const baseManifest = {
 	name: 'Markdown Clipboard',
-	version: '0.1.0',
-	description: 'Copy links, images, and selections as Markdown — and convert HTML on your clipboard to Markdown with one click.',
+	version: '0.1.1',
+	description: 'Convert HTML on your clipboard or on a page to Markdown with one click. Formats lists, links, images, and selections.',
 	manifest_version: 3,
 	icons: {
 		16: 'icons/icon-16.png',
@@ -60,7 +60,20 @@ function manifestFor(target) {
 		browser_specific_settings: {
 			gecko: {
 				id: 'markdown-clipboard@ckaeser.de',
-				strict_min_version: '128.0',
+				// `data_collection_permissions` (required by AMO for new
+				// submissions) was introduced in Firefox 140, which is also the
+				// current ESR baseline.
+				strict_min_version: '140.0',
+				// Everything happens locally on the clipboard; nothing is
+				// transmitted, so we declare the special "none" value.
+				data_collection_permissions: {
+					required: ['none'],
+				},
+			},
+			// Firefox for Android gained the data-collection key one release
+			// later than desktop.
+			gecko_android: {
+				strict_min_version: '142.0',
 			},
 		},
 	};
@@ -85,9 +98,10 @@ async function buildTarget(target) {
 		logLevel: 'info',
 		alias: {
 			// The Chromium service worker delegates clipboard work to the
-			// offscreen document, so it gets a stub instead of Turndown & co.
+			// offscreen document (no DOM/Turndown in the worker); Firefox's
+			// background page converts directly.
 			'#convert-host': target === 'chrome'
-				? './src/convert-host-stub.ts'
+				? './src/convert-host-chrome.ts'
 				: './src/clipboard-convert.ts',
 		},
 	};
