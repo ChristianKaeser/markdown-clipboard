@@ -46,6 +46,18 @@ describe('htmlToMarkdown', () => {
 		expect(markdown).toContain('```\nconst x = 1;\nconsole.log(x);\n```');
 	});
 
+	it('fences a bare <pre> (no inner <code>) and preserves its blank lines', () => {
+		// MediaWiki `mw-highlight` and similar emit <pre> without a <code> child;
+		// Turndown's built-in rule only fences <pre><code>.
+		const markdown = htmlToMarkdown('<div class="mw-highlight"><pre>a: 1\n\nb: 2</pre></div>');
+		expect(markdown).toContain('```\na: 1\n\nb: 2\n```');
+	});
+
+	it('widens the fence when a bare <pre> contains a triple-backtick run', () => {
+		const markdown = htmlToMarkdown('<pre>before\n```\nafter</pre>');
+		expect(markdown).toContain('````\nbefore\n```\nafter\n````');
+	});
+
 	it('leaves intraword underscores unescaped', () => {
 		expect(htmlToMarkdown('<p>hir_high_variable_allocation</p>')).toBe('hir_high_variable_allocation');
 		expect(htmlToMarkdown('<p>a__b</p>')).toBe('a__b');

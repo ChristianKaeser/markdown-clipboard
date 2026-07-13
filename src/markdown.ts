@@ -48,6 +48,21 @@ export function createTurndownService(): TurndownService {
 	turndownService.escape = (text: string) =>
 		escape(text).replaceAll(/(?<=[^\W_])(?:\\_)+(?=[^\W_])/g, match => match.replaceAll('\\', ''));
 
+	// Turndown's built-in fenced-code rule only matches `<pre><code>`. Many
+	// sources (MediaWiki `mw-highlight`, some docs sites) emit a bare `<pre>`
+	// with no inner `<code>`; without this those blocks lose their fencing *and*
+	// their internal blank lines (whitespace gets collapsed as normal text).
+	turndownService.addRule('barePre', {
+		filter: node => node.nodeName === 'PRE' && !node.querySelector('code'),
+		replacement(_content, node) {
+			const code = (node.textContent ?? '').replace(/\n+$/, '');
+			// Fence must be longer than any backtick run inside the code.
+			const longestRun = Math.max(0, ...[...code.matchAll(/`+/g)].map(match => match[0].length));
+			const fence = '`'.repeat(Math.max(3, longestRun + 1));
+			return `\n\n${fence}\n${code}\n${fence}\n\n`;
+		},
+	});
+
 	turndownService.addRule('mathml', {
 		// 'math' is not part of HTMLElementTagNameMap, so match by node name
 		filter: node => node.nodeName.toLowerCase() === 'math',
