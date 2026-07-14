@@ -8,7 +8,7 @@ const targets = requestedTargets.length > 0 ? requestedTargets : ['chrome', 'fir
 
 const baseManifest = {
 	name: 'Markdown Clipboard',
-	version: '0.2.0',
+	version: '0.2.1',
 	description: 'Convert HTML on your clipboard or on a page to Markdown with one click. Formats lists, links, images, and selections.',
 	manifest_version: 3,
 	icons: {
