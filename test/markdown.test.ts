@@ -52,6 +52,26 @@ describe('htmlToMarkdown', () => {
 		expect(markdown).toBe('| Ada | Engineer |\n| --- | --- |\n| Linus | Kernel |');
 	});
 
+	it('converts editor tables with a <colgroup> and <p>-wrapped cells (ProseMirror/tiptap)', () => {
+		// The <colgroup> before <tbody> made turndown-plugin-gfm keep raw HTML,
+		// and <p> in cells broke rows across lines.
+		const markdown = htmlToMarkdown('<p>Intro.</p><table style="min-width: 96px;"><colgroup><col style="min-width: 48px;"><col style="min-width: 48px;"></colgroup><tbody>'
+			+ '<tr><th colspan="1" rowspan="1"><p>Typology</p></th><th colspan="1" rowspan="1"><p>Parcel rule</p></th></tr>'
+			+ '<tr><td colspan="1" rowspan="1"><p>Old town (Altstadt)</p></td><td colspan="1" rowspan="1"><p>Narrow, deep lots, 5–8 m frontage</p></td></tr>'
+			+ '</tbody></table>');
+		expect(markdown).toBe('Intro.\n\n| Typology | Parcel rule |\n| --- | --- |\n| Old town (Altstadt) | Narrow, deep lots, 5–8 m frontage |');
+	});
+
+	it('escapes pipes in table cells, including inside code spans', () => {
+		const markdown = htmlToMarkdown('<table><thead><tr><th>op</th></tr></thead><tbody><tr><td>a | b</td></tr><tr><td><code>x || y</code></td></tr></tbody></table>');
+		expect(markdown).toBe('| op |\n| --- |\n| a \\| b |\n| `x \\|\\| y` |');
+	});
+
+	it('keeps column alignment from the header cells', () => {
+		const markdown = htmlToMarkdown('<table><thead><tr><th align="left">a</th><th style="text-align: center">b</th><th align="right">c</th><th>d</th></tr></thead><tbody><tr><td>1</td><td>2</td><td>3</td><td>4</td></tr></tbody></table>');
+		expect(markdown).toContain('| :--- | :---: | ---: | --- |');
+	});
+
 	it('does not dump raw <table> HTML for unhandled tables', () => {
 		const markdown = htmlToMarkdown('<table><tbody><tr><th>k</th><td>v</td></tr></tbody></table>');
 		expect(markdown).not.toContain('<table');

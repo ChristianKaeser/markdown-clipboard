@@ -63,12 +63,14 @@ export function createTurndownService(): TurndownService {
 		},
 	});
 
-	// turndown-plugin-gfm only builds a Markdown table when the FIRST ROW is a
-	// heading row (a `<thead>`, or a first row that is all `<th>`). Tables with
-	// headers in the first COLUMN (key/value layout tables) or with no header at
-	// all are otherwise kept verbatim as raw HTML. Convert those too: 2-column
-	// key/value tables become label/value pairs, everything else becomes a GFM
-	// table with the first row treated as the header.
+	// We convert every table ourselves instead of using turndown-plugin-gfm's
+	// table rules, which (a) keep a table as raw HTML unless its first row is a
+	// heading row by a strict definition (a `<colgroup>` before the `<tbody>`, as
+	// ProseMirror/tiptap editors emit, already fails it), and (b) don't flatten
+	// block content in cells, so `<td><p>…</p></td>` breaks the row across lines.
+	// 2-column key/value layout tables (header column, no header row) become
+	// label/value pairs; everything else becomes a GFM table with the first row
+	// as the header.
 	const isHeadingRow = (row: HTMLTableRowElement): boolean => {
 		const parent = row.parentElement;
 		if (!parent) {
@@ -83,16 +85,40 @@ export function createTurndownService(): TurndownService {
 	const cellToInline = (cell: HTMLTableCellElement): string =>
 		turndownService.turndown(cell.innerHTML).replaceAll(/\s*\n+\s*/g, ' ').trim();
 
-	turndownService.addRule('nonHeadingTable', {
-		filter: node =>
-			node.nodeName === 'TABLE'
-			&& (node as HTMLTableElement).rows.length > 0
-			&& !isHeadingRow((node as HTMLTableElement).rows[0]),
+	// In a GFM table cell, a literal `|` (even inside a code span) must be escaped.
+	const tableCell = (cell: HTMLTableCellElement): string =>
+		cellToInline(cell).replaceAll('|', String.raw`\|`);
+
+	const separatorFor = (cell: HTMLTableCellElement | undefined): string => {
+		const align = (cell?.getAttribute('align') ?? cell?.style.textAlign ?? '').toLowerCase();
+		switch (align) {
+			case 'left': {
+				return ':---';
+			}
+
+			case 'center': {
+				return ':---:';
+			}
+
+			case 'right': {
+				return '---:';
+			}
+
+			default: {
+				return '---';
+			}
+		}
+	};
+
+	turndownService.addRule('table', {
+		filter: node => node.nodeName === 'TABLE' && (node as HTMLTableElement).rows.length > 0,
 		replacement(_content, node) {
 			const rows = [...(node as HTMLTableElement).rows];
 
-			// Key/value layout table: every row is a `<th>` label + one value cell.
-			if (rows.every(row => row.cells.length === 2 && row.cells[0].nodeName === 'TH')) {
+			// Key/value layout table: no header row, every row is a `<th>` label +
+			// one value cell.
+			if (!isHeadingRow(rows[0])
+				&& rows.every(row => row.cells.length === 2 && row.cells[0].nodeName === 'TH')) {
 				const pairs = rows.map(row => `**${cellToInline(row.cells[0])}** — ${cellToInline(row.cells[1])}`);
 				return '\n\n' + pairs.join('\n\n') + '\n\n';
 			}
@@ -100,7 +126,7 @@ export function createTurndownService(): TurndownService {
 			// Otherwise: a GFM table, first row as the header.
 			const width = Math.max(...rows.map(row => row.cells.length));
 			const toLine = (row: HTMLTableRowElement): string => {
-				const cells = [...row.cells].map(cell => cellToInline(cell));
+				const cells = [...row.cells].map(cell => tableCell(cell));
 				while (cells.length < width) {
 					cells.push('');
 				}
@@ -108,7 +134,8 @@ export function createTurndownService(): TurndownService {
 				return `| ${cells.join(' | ')} |`;
 			};
 
-			const separator = `| ${Array.from({length: width}, () => '---').join(' | ')} |`;
+			const headerCells = [...rows[0].cells];
+			const separator = `| ${Array.from({length: width}, (_, index) => separatorFor(headerCells[index])).join(' | ')} |`;
 			return '\n\n' + [toLine(rows[0]), separator, ...rows.slice(1).map(row => toLine(row))].join('\n') + '\n\n';
 		},
 	});
